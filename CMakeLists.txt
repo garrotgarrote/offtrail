@@ -183,24 +183,40 @@ set(Boost_USE_MULTITHREAD ON)
 set(Boost_USE_STATIC_LIBS ON CACHE BOOL "Set to ON to force the use of the static libraries.")
 set(Boost_USE_STATIC_RUNTIME OFF)
 
-find_package(Boost 1.67 COMPONENTS system program_options filesystem date_time REQUIRED)
+if (POLICY CMP0167)
+	cmake_policy(SET CMP0167 NEW)
+endif()
+
+#find_package(Boost 1.67 COMPONENTS system program_options filesystem date_time REQUIRED)
+set(BOOST_MIN_VERSION "1.71")
+set(Boost_ADDITIONAL_VERSIONS "1.90.0" "1.91.0")
+# Boost.System has been header-only since Boost 1.69. The stub compiled library was removed in 1.89.
+#find_package(Boost 1.71 CONFIG COMPONENTS program_options filesystem date_time REQUIRED)
+find_package(Boost ${BOOST_MIN_VERSION} CONFIG COMPONENTS process program_options filesystem date_time REQUIRED)
+
+#message(STATUS "Boost_ADDITIONAL_VERSIONS: ${Boost_ADDITIONAL_VERSIONS}")
+#message(STATUS "Boost_INCLUDE_DIRS: ${Boost_INCLUDE_DIRS}")
+#message(STATUS "Boost_LIBRARIES: ${Boost_LIBRARIES}")
+#message(STATUS "Boost_VERSION: ${Boost_VERSION}")
 
 
 # Qt ---------------------------------------------------------------------------
 
-set (QT_MIN_VERSION "5.12.0")
-set (QT_MIN_VERSION_HEX 0x051200)
-find_package(Qt5 ${QT_MIN_VERSION} COMPONENTS Widgets PrintSupport Network Svg REQUIRED)
+# Standard support for Qt 5.15 ended on/after the 26th of May 2025.
+
+set(QT_MIN_VERSION "6.10.2")
+set(QT_MIN_VERSION_HEX 0x061020)
+find_package(Qt6 ${QT_MIN_VERSION} COMPONENTS Core5Compat Widgets PrintSupport Network Svg REQUIRED)
 
 if (WIN32)
-	find_package(Qt5 ${QT_MIN_VERSION} COMPONENTS WinExtras REQUIRED)
+	find_package(Qt6 ${QT_MIN_VERSION} COMPONENTS WinExtras REQUIRED)
 endif()
 
-if(Qt5Widgets_FOUND)
-	message(STATUS "Found Qt ${Qt5Widgets_VERSION_STRING}")
+if(Qt6Widgets_FOUND)
+	message(STATUS "Found Qt ${Qt6Widgets_VERSION_STRING}")
 
 	# FIX: Qt was built with -reduce-relocations
-	if (Qt5_POSITION_INDEPENDENT_CODE)
+	if (Qt6_POSITION_INDEPENDENT_CODE)
 		SET(CMAKE_POSITION_INDEPENDENT_CODE ON)
 	endif()
 
@@ -312,7 +328,7 @@ target_include_directories(${LIB_UTILITY_PROJECT_NAME} SYSTEM
 	PUBLIC ${Boost_INCLUDE_DIR}
 )
 
-target_link_libraries(${LIB_UTILITY_PROJECT_NAME} ${Boost_LIBRARIES} Qt5::Widgets Qt5::Network)
+target_link_libraries(${LIB_UTILITY_PROJECT_NAME} ${Boost_LIBRARIES} Qt6::Core5Compat Qt6::Widgets Qt6::Network)
 
 if (UNIX AND NOT APPLE)
 	find_package(Threads REQUIRED)
@@ -540,7 +556,9 @@ add_custom_target(
 
 add_library(${LIB_GUI_PROJECT_NAME} ${LIB_GUI_FILES} ${CMAKE_BINARY_DIR}/src/lib_gui/productVersion.h)
 
-target_link_libraries(${LIB_GUI_PROJECT_NAME} ${LIB_UTILITY_PROJECT_NAME} ${LIB_PROJECT_NAME} Qt5::Widgets Qt5::Network Qt5::Svg)
+#message(STATUS "LIB_GUI_FILES: ${LIB_GUI_FILES}")
+
+target_link_libraries(${LIB_GUI_PROJECT_NAME} ${LIB_UTILITY_PROJECT_NAME} ${LIB_PROJECT_NAME} Qt6::Core5Compat Qt6::Widgets Qt6::Network Qt6::Svg)
 
 if (WIN32)
 	target_link_libraries(${LIB_GUI_PROJECT_NAME} Qt5::WinExtras)
@@ -552,7 +570,7 @@ add_custom_command(
 	PRE_BUILD
 	COMMAND ${CMAKE_COMMAND} -DBINARY_DIR=${CMAKE_BINARY_DIR} -P ${CMAKE_SOURCE_DIR}/cmake/version.cmake
 	BYPRODUCTS ${CMAKE_BINARY_DIR}/src/lib_gui/productVersion.h
-	DEPENDS ${LIB_GUI_PROJECT_NAME}
+#	DEPENDS ${LIB_GUI_PROJECT_NAME}
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 	COMMENT "check/update version number"
 )
@@ -741,9 +759,9 @@ target_include_directories(${APP_PROJECT_NAME} SYSTEM
 	"${EXTERNAL_C_INCLUDE_PATHS}"
 )
 
-# Use the Widgets module from Qt 5.
-qt5_use_modules(${APP_PROJECT_NAME} Widgets)
-qt5_use_modules(${APP_PROJECT_NAME} Network)
+target_link_libraries(${APP_PROJECT_NAME} Qt6::Core5Compat)
+target_link_libraries(${APP_PROJECT_NAME} Qt6::Widgets)
+target_link_libraries(${APP_PROJECT_NAME} Qt6::Network)
 
 # add platform specific libraries
 if (APPLE)
