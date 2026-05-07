@@ -28,7 +28,30 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
         OUTPUT_VARIABLE GIT_VERSION_NUMBER
         OUTPUT_STRIP_TRAILING_WHITESPACE
+		RESULT_VARIABLE GIT_DESCRIBE_CMD_RESULT
     )
+
+	if (NOT ${GIT_DESCRIBE_CMD_RESULT} EQUAL 0)
+		message(WARNING "'git describe --long' returned a non-zero value.")
+	endif ()
+
+	if ("${GIT_VERSION_NUMBER}" STREQUAL "")
+		message(WARNING "GIT_VERSION_NUMBER is an empty string. Did 'git describe --long' fail?")
+		message(STATUS "GIT_VERSION_NUMBER: ${GIT_VERSION_NUMBER}")
+		message(STATUS "Falling back to a dummy version string using 'git log -1 --format=\"%ad-g%h\" --date=format:\"%Y.%m.%d\" HEAD'")
+
+		execute_process(
+			# COMMAND ${GIT_EXECUTABLE} log -1 --format=\"%ad-g%h\" --date=format:\"%Y.%m.%d\" HEAD
+			# COMMAND ${GIT_EXECUTABLE} log -1 --format=%ad-g%h --date=format:%Y.%m.%d HEAD
+			COMMAND ${GIT_EXECUTABLE} log -1 --format=%ad-g%h --date=format:%Y.%m-%d HEAD
+			WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+			OUTPUT_VARIABLE GIT_VERSION_NUMBER
+			OUTPUT_STRIP_TRAILING_WHITESPACE
+		)
+
+		message(STATUS "GIT_VERSION_NUMBER returned by fallback path: ${GIT_VERSION_NUMBER}")
+	endif ()
+
     string(REGEX REPLACE "^([0-9]+)\\..*" "\\1" VERSION_YEAR "${GIT_VERSION_NUMBER}")
     string(REGEX REPLACE "^[0-9]+\\.([0-9]+).*" "\\1" VERSION_MINOR "${GIT_VERSION_NUMBER}")
     string(REGEX REPLACE "^[0-9]+\\.[0-9]+-([0-9]+).*" "\\1" VERSION_COMMIT "${GIT_VERSION_NUMBER}")
