@@ -1,9 +1,16 @@
 #ifndef QT_FILE_DIALOG_H
 #define QT_FILE_DIALOG_H
 
+#include <QtGlobal>
+
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+	#include <QStringList>
+#else
+	class QStringList; // Valid in Qt5 only
+#endif
+
 class FilePath;
 class QString;
-class QStringList;
 class QWidget;
 
 class QtFileDialog

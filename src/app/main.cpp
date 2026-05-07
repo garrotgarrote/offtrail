@@ -111,10 +111,12 @@ int main(int argc, char* argv[])
 
 	QApplication::setApplicationName(QStringLiteral("Sourcetrail"));
 
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 	if (utility::getOsType() != OS_LINUX)
 	{
 		QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling, true);
 	}
+#endif
 
 	Version version(VERSION_YEAR, VERSION_MINOR, VERSION_COMMIT, GIT_COMMIT_HASH);
 	QApplication::setApplicationVersion(version.toDisplayString().c_str());
@@ -196,7 +198,9 @@ int main(int argc, char* argv[])
 
 		setupLogging();
 
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 		qtApp.setAttribute(Qt::AA_UseHighDpiPixmaps);
+#endif
 
 		QtViewFactory viewFactory;
 		QtNetworkFactory networkFactory;

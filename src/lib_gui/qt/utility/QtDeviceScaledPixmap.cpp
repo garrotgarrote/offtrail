@@ -50,7 +50,10 @@ void QtDeviceScaledPixmap::scaleToHeight(int height)
 
 void QtDeviceScaledPixmap::mirror(bool horizontal, bool vertical)
 {
-	m_pixmap = QPixmap::fromImage(m_pixmap.toImage().mirrored(horizontal, vertical));
+	auto orientation_h = (horizontal ? Qt::Horizontal : Qt::Orientations(0x0));
+	auto orientation_v = (vertical   ? Qt::Vertical   : Qt::Orientations(0x0));
+
+	m_pixmap = QPixmap::fromImage(m_pixmap.toImage().flipped(orientation_h | orientation_v));
 	m_pixmap.setDevicePixelRatio(devicePixelRatio());
 }
 

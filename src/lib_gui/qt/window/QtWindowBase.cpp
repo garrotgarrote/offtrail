@@ -134,7 +134,7 @@ void QtWindowBase::mouseMoveEvent(QMouseEvent* event)
 	{
 		if (m_isSubWindow)
 		{
-			QPoint pos = event->globalPos() - m_dragPosition;
+			QPoint pos = event->globalPosition().toPoint() - m_dragPosition;
 			QRect parentRect = parentWidget()->rect();
 
 			if (pos.x() < parentRect.left())
@@ -149,7 +149,7 @@ void QtWindowBase::mouseMoveEvent(QMouseEvent* event)
 		}
 		else
 		{
-			move(event->globalPos() - m_dragPosition);
+			move(event->globalPosition().toPoint() - m_dragPosition);
 			event->accept();
 		}
 	}
@@ -159,7 +159,7 @@ void QtWindowBase::mousePressEvent(QMouseEvent* event)
 {
 	if (event->button() == Qt::LeftButton)
 	{
-		m_dragPosition = event->globalPos() - frameGeometry().topLeft();
+		m_dragPosition = event->globalPosition().toPoint() - frameGeometry().topLeft();
 		event->accept();
 		m_mousePressedInWindow = true;
 	}
@@ -169,7 +169,7 @@ void QtWindowBase::mouseReleaseEvent(QMouseEvent* event)
 {
 	if (event->button() == Qt::LeftButton)
 	{
-		m_dragPosition = event->globalPos() - frameGeometry().topLeft();
+		m_dragPosition = event->globalPosition().toPoint() - frameGeometry().topLeft();
 		event->accept();
 		m_mousePressedInWindow = false;
 	}

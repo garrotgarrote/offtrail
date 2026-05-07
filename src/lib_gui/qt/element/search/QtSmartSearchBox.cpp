@@ -51,7 +51,7 @@ void QtSmartSearchBox::startSearch()
 			{
 				QString text = QString::fromStdWString(match.name);
 				if (m_supportsFullTextSearch &&
-					!text.startsWith(SearchMatch::FULLTEXT_SEARCH_CHARACTER))
+					!text.startsWith(QChar(SearchMatch::FULLTEXT_SEARCH_CHARACTER)))
 				{
 					text = QChar(SearchMatch::FULLTEXT_SEARCH_CHARACTER) + text;
 				}
@@ -232,7 +232,7 @@ void QtSmartSearchBox::focusInEvent(QFocusEvent* event)
 		return;
 	}
 
-	if (text().size() == 1 && text().startsWith(SearchMatch::FULLTEXT_SEARCH_CHARACTER))
+	if (text().size() == 1 && text().startsWith(QChar(SearchMatch::FULLTEXT_SEARCH_CHARACTER)))
 	{
 		setEditText(QLatin1String(""));
 	}
@@ -272,7 +272,7 @@ void QtSmartSearchBox::keyPressEvent(QKeyEvent* event)
 
 	if (event->key() == Qt::Key_Return)
 	{
-		if (text().startsWith(SearchMatch::FULLTEXT_SEARCH_CHARACTER))
+		if (text().startsWith(QChar(SearchMatch::FULLTEXT_SEARCH_CHARACTER)))
 		{
 			startFullTextSearch();
 			return;
@@ -514,8 +514,8 @@ void QtSmartSearchBox::mouseMoveEvent(QMouseEvent* event)
 		return;
 	}
 
-	int lo = event->x() < m_mouseX ? event->x() : m_mouseX;
-	int hi = event->x() > m_mouseX ? event->x() : m_mouseX;
+	int lo = event->position().x() < m_mouseX ? event->position().x() : m_mouseX;
+	int hi = event->position().x() > m_mouseX ? event->position().x() : m_mouseX;
 
 	for (size_t i = 0; i < m_elements.size(); i++)
 	{
@@ -534,7 +534,7 @@ void QtSmartSearchBox::mousePressEvent(QMouseEvent* event)
 		QLineEdit::mousePressEvent(event);
 
 		m_mousePressed = true;
-		m_mouseX = event->x();
+		m_mouseX = event->position().x();
 	}
 
 	m_ignoreNextMousePress = false;
@@ -551,16 +551,16 @@ void QtSmartSearchBox::mouseReleaseEvent(QMouseEvent* event)
 
 	m_mousePressed = false;
 
-	if (abs(event->x() - m_mouseX) > 5)
+	if (abs(event->position().x() - m_mouseX) > 5)
 	{
 		return;
 	}
 
-	int minDist = event->x();
+	int minDist = event->position().x();
 	int pos = 0;
 	for (size_t i = 0; i < m_elements.size(); i++)
 	{
-		int dist = m_elements[i]->x() + m_elements[i]->width() - event->x();
+		int dist = m_elements[i]->x() + m_elements[i]->width() - event->position().x();
 		if (abs(dist) < abs(minDist))
 		{
 			pos = static_cast<int>(i) + 1;
@@ -1064,7 +1064,7 @@ void QtSmartSearchBox::clearLineEdit()
 
 void QtSmartSearchBox::requestAutoCompletions()
 {
-	if (!text().isEmpty() && !text().startsWith(SearchMatch::FULLTEXT_SEARCH_CHARACTER))
+	if (!text().isEmpty() && !text().startsWith(QChar(SearchMatch::FULLTEXT_SEARCH_CHARACTER)))
 	{
 		emit autocomplete(text().toStdWString(), getMatchAcceptedNodeTypes());
 	}

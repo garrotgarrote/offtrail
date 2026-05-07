@@ -5,13 +5,11 @@
 #include <set>
 
 #include <boost/asio/buffer.hpp>
-#include <boost/asio/io_service.hpp>
+#include <boost/asio/io_context.hpp>
 #include <boost/asio/read.hpp>
+#include <boost/asio/steady_timer.hpp>
 #include <boost/process.hpp>
-#include <boost/process/async_pipe.hpp>
-#include <boost/process/child.hpp>
-#include <boost/process/io.hpp>
-#include <boost/process/search_path.hpp>
+#include <boost/process/environment.hpp>
 #include <boost/process/start_dir.hpp>
 
 #include <QThread>
@@ -23,7 +21,7 @@
 namespace utility
 {
 std::mutex s_runningProcessesMutex;
-std::set<std::shared_ptr<boost::process::child>> s_runningProcesses;
+std::set<std::shared_ptr<boost::process::process>> s_runningProcesses;
 }	 // namespace utility
 
 std::string utility::getDocumentationLink()
@@ -34,7 +32,7 @@ std::string utility::getDocumentationLink()
 std::wstring utility::searchPath(const std::wstring& bin, bool& ok)
 {
 	ok = false;
-	std::wstring r = boost::process::search_path(bin).generic_wstring();
+	std::wstring r = boost::process::environment::find_executable(bin).generic_wstring();
 	if (!r.empty())
 	{
 		ok = true;
@@ -52,17 +50,20 @@ std::wstring utility::searchPath(const std::wstring& bin)
 namespace
 {
 template <typename Rep, typename Period>
-bool safely_wait_for(boost::process::child& process, const std::chrono::duration<Rep, Period>& rel_time)
+bool safely_wait_for(boost::process::process& process, boost::asio::io_context& ctx, const std::chrono::duration<Rep, Period>& rel_time)
 {
 	// This wrapper around boost::process::wait_for handles the following edge case:
-	// Calling wait_for on an already exitted process will wait for the entire timeout.
+	// Calling wait_for on an already exited process will wait for the entire timeout.
 	if (process.running())
 	{
-		return process.wait_for(rel_time);
+		boost::asio::steady_timer timer(ctx);
+		timer.expires_after(rel_time);
+
+		return process.wait();
 	}
 	else
 	{
-		return true;	// The process exitted
+		return true;	// The process exited
 	}
 }
 }	 // namespace
@@ -79,37 +80,43 @@ utility::ProcessOutput utility::executeProcess(
 	int exitCode = 255;
 	try
 	{
-		boost::asio::io_service ios;
-		boost::process::async_pipe ap(ios);
+		boost::asio::io_context ios;
+		boost::asio::readable_pipe ap(ios);
 
-		std::shared_ptr<boost::process::child> process;
+		std::shared_ptr<boost::process::process> process;
 
-		boost::process::environment env = boost::this_process::environment();
-		std::vector<std::string> previousPath = env["PATH"].to_vector();
-		env["PATH"] = {"/opt/local/bin", "/usr/local/bin", "$HOME/bin"};
-		for (const std::string& entry: previousPath)
+		auto env = boost::process::environment::current();
+		auto path_key = "PATH";
+		auto delimiter = ":";
+		auto previousPath = boost::process::environment::get(path_key);
+		std::string newPath = "/opt/local/bin:/usr/local/bin:$HOME/bin:";
+
+		for (const auto entry: previousPath)
 		{
-			env["PATH"].append(entry);
+			newPath += std::string(entry);
+			newPath += delimiter;
 		}
+		boost::system::error_code err;
+		boost::process::environment::set(path_key, newPath, err);
 
 		if (workingDirectory.empty())
 		{
-			process = std::make_shared<boost::process::child>(
+			process = std::make_shared<boost::process::process>(
+				ios,
 				searchPath(command),
-				boost::process::args(arguments),
+				arguments,
 				env,
-				boost::process::std_in.close(),
-				(boost::process::std_out & boost::process::std_err) > ap);
+				boost::process::process_stdio {.in = nullptr, ap, ap});
 		}
 		else
 		{
-			process = std::make_shared<boost::process::child>(
+			process = std::make_shared<boost::process::process>(
+				ios,
 				searchPath(command),
-				boost::process::args(arguments),
-				boost::process::start_dir(workingDirectory.wstr()),
+				arguments,
+				boost::process::process_start_dir(workingDirectory.wstr()),
 				env,
-				boost::process::std_in.close(),
-				(boost::process::std_out & boost::process::std_err) > ap);
+				boost::process::process_stdio {.in = nullptr, ap, ap});
 		}
 
 		{
@@ -174,7 +181,7 @@ utility::ProcessOutput utility::executeProcess(
 		{
 			if (waitUntilNoOutput)
 			{
-				while (!safely_wait_for(*process, std::chrono::milliseconds(timeout)))
+				while (!safely_wait_for(*process, ios, std::chrono::milliseconds(timeout)))
 				{
 					if (!outputReceived)
 					{
@@ -190,7 +197,7 @@ utility::ProcessOutput utility::executeProcess(
 			}
 			else
 			{
-				if (!safely_wait_for(*process, std::chrono::milliseconds(timeout)))
+				if (!safely_wait_for(*process, ios, std::chrono::milliseconds(timeout)))
 				{
 					LOG_WARNING(
 						"Canceling process because it timed out after " +
@@ -214,7 +221,7 @@ utility::ProcessOutput utility::executeProcess(
 
 		exitCode = process->exit_code();
 	}
-	catch (const boost::process::process_error& e)
+	catch (const boost::system::system_error& e)
 	{
 		ProcessOutput ret;
 		ret.error = utility::decodeFromUtf8(e.code().message());
@@ -233,7 +240,7 @@ utility::ProcessOutput utility::executeProcess(
 void utility::killRunningProcesses()
 {
 	std::lock_guard<std::mutex> lock(s_runningProcessesMutex);
-	for (std::shared_ptr<boost::process::child> process: s_runningProcesses)
+	for (std::shared_ptr process: s_runningProcesses)
 	{
 		process->terminate();
 	}
