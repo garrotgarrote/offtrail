@@ -38,12 +38,10 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
 	if ("${GIT_VERSION_NUMBER}" STREQUAL "")
 		message(WARNING "GIT_VERSION_NUMBER is an empty string. Did 'git describe --long' fail?")
 		message(STATUS "GIT_VERSION_NUMBER: ${GIT_VERSION_NUMBER}")
-		message(STATUS "Falling back to a dummy version string using 'git log -1 --format=\"%ad-g%h\" --date=format:\"%Y.%m.%d\" HEAD'")
+		message(STATUS "Falling back to a dummy version string using 'git log -1 --format=\"%ad-g%h\" --date=format:\"%Y.%-m-%-d\" HEAD'")
 
 		execute_process(
-			# COMMAND ${GIT_EXECUTABLE} log -1 --format=\"%ad-g%h\" --date=format:\"%Y.%m.%d\" HEAD
-			# COMMAND ${GIT_EXECUTABLE} log -1 --format=%ad-g%h --date=format:%Y.%m.%d HEAD
-			COMMAND ${GIT_EXECUTABLE} log -1 --format=%ad-g%h --date=format:%Y.%m-%d HEAD
+			COMMAND ${GIT_EXECUTABLE} log -1 --format=%ad-g%h --date=format:%Y.%-m-%-d HEAD
 			WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 			OUTPUT_VARIABLE GIT_VERSION_NUMBER
 			OUTPUT_STRIP_TRAILING_WHITESPACE
