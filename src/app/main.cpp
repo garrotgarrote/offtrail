@@ -91,15 +91,8 @@ void addLanguagePackages()
 #endif	  // BUILD_JAVA_LANGUAGE_PACKAGE
 }
 
-int main(int argc, char* argv[])
+void warnRunFromSourceScript()
 {
-	// auto p = utility::executeProcessBoost(utility::searchPath(L"mvn") + L" --version", FilePath("/Users/ebsi/Documents/boost_1_67_0"), 3000);
-	// std::wcout << p.first << " " << p.second << std::endl;
-	// return 0;
-
-
-	QCoreApplication::addLibraryPath(QStringLiteral("."));
-
 #pragma warning(push)
 #pragma warning(disable : 4996)
 	if (utility::getOsType() == OS_LINUX && std::getenv("SOURCETRAIL_VIA_SCRIPT") == nullptr &&
@@ -108,6 +101,16 @@ int main(int argc, char* argv[])
 		std::cout << "ERROR: Please run Sourcetrail via the Sourcetrail.sh script!" << std::endl;
 	}
 #pragma warning(pop)
+}
+
+
+int main(int argc, char* argv[])
+{
+	// auto p = utility::executeProcessBoost(utility::searchPath(L"mvn") + L" --version", FilePath("/Users/ebsi/Documents/boost_1_67_0"), 3000);
+	// std::wcout << p.first << " " << p.second << std::endl;
+	// return 0;
+
+	QCoreApplication::addLibraryPath(QStringLiteral("."));
 
 	QApplication::setApplicationName(QStringLiteral("Sourcetrail"));
 
@@ -140,6 +143,8 @@ int main(int argc, char* argv[])
 	{
 		// headless Sourcetrail
 		QtCoreApplication qtApp(argc, argv);
+
+		warnRunFromSourceScript();
 
 		setupApp(argc, argv);
 
@@ -193,6 +198,8 @@ int main(int argc, char* argv[])
 		}
 #endif
 		QtApplication qtApp(argc, argv);
+
+		warnRunFromSourceScript();
 
 		setupApp(argc, argv);
 
