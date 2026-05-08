@@ -179,6 +179,8 @@ endif()
 
 # Boost ------------------------------------------------------------------------
 
+set(Boost_NO_SYSTEM_PATHS ON)
+
 set(Boost_USE_MULTITHREAD ON)
 set(Boost_USE_STATIC_LIBS ON CACHE BOOL "Set to ON to force the use of the static libraries.")
 set(Boost_USE_STATIC_RUNTIME OFF)
