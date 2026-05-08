@@ -5,6 +5,7 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QMessageBox>
+#include <QMetaMethod>
 #include <QString>
 #include <QVBoxLayout>
 
@@ -105,7 +106,24 @@ void QtStartScreen::updateButtons()
 	size_t i = 0;
 	for (QtRecentProjectButton* button: m_recentProjectsButtons)
 	{
-		button->disconnect();
+		/*  //////// DEBUG
+		// static const QMetaMethod updateButtonsSignal = QMetaMethod::fromSignal(&QtRecentProjectButton::updateButtons);
+		// if (isSignalConnected(updateButtonsSignal)) { button->disconnect(); }
+
+		const QMetaObject* meta = button->metaObject();
+
+		// List all available methods (signals, slots, and other invokable members)
+		for (int i = 0; i < meta->methodCount(); ++i)
+		{
+			QMetaMethod method = meta->method(i);
+			qDebug() << method.methodSignature();
+		}
+		*/  //////// DEBUG
+
+		button->disconnect(SIGNAL(clicked()),     button, SLOT(handleButtonClick()));
+		button->disconnect(SIGNAL(clicked()),       this, SLOT(handleRecentButton()));
+		button->disconnect(SIGNAL(updateButtons()), this, SLOT(updateButtons()));
+
 		if (i < recentProjects.size())
 		{
 			button->setProjectPath(recentProjects[i]);
