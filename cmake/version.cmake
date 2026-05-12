@@ -69,6 +69,32 @@ set(VERSION_STRING "${VERSION_YEAR}.${VERSION_MINOR}.${VERSION_COMMIT}")
 
 message(STATUS "Version: ${VERSION_STRING}")
 
+# Sloppy workaround to get the correct output directory both
+# when both reloading the cmake project and when building. This
+# may ultimately be unnecessary as I believe this file only needs
+# to be run in one of those cases.
+#message(STATUS "BINARY_DIR: '${BINARY_DIR}'")
+#message(STATUS "CMAKE_BINARY_DIR: ${CMAKE_BINARY_DIR}")
+if ("${BINARY_DIR}" STREQUAL "")
+	set(BINARY_DIR ${CMAKE_BINARY_DIR})
+#	message(STATUS "[version.cmake] BINARY_DIR: '${BINARY_DIR}'")
+endif ()
+
+string(TIMESTAMP CURRENT_TIME "%Y.%m.%d-%H:%M:%S")
+file(WRITE "${BINARY_DIR}/version_variables.cmake"
+	"# Build Date: ${CURRENT_TIME}\n\n"
+	"# cmake include file used to pass the version variables\n"
+	"# to \"generate_productversion_header.cmake\"\n\n"
+	"set(GIT_BRANCH \"${GIT_BRANCH}\")\n"
+	"set(GIT_VERSION_NUMBER \"${GIT_VERSION_NUMBER}\")\n"
+	"set(GIT_COMMIT_HASH \"${GIT_COMMIT_HASH}\")\n"
+	"set(GIT_COMMIT_TIME \"${GIT_COMMIT_TIME}\")\n"
+	"set(VERSION_YEAR   ${VERSION_YEAR})\n"
+	"set(VERSION_MINOR  ${VERSION_MINOR})\n"
+	"set(VERSION_COMMIT ${VERSION_COMMIT})\n"
+)
+message(STATUS "[version.cmake] Writing file: ${BINARY_DIR}/version_variables.cmake")
+
 # message(STATUS "Git current branch: ${GIT_BRANCH}")
 # message(STATUS "Git version number: " ${GIT_VERSION_NUMBER} )
 # message(STATUS "Git commit hash: ${GIT_COMMIT_HASH}")

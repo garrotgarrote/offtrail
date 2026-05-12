@@ -13,6 +13,8 @@ set(TREAT_WARNINGS_AS_ERRORS ON CACHE BOOL "Treat compiler warnings as errors")
 
 include(cmake/add_files.cmake)
 include(cmake/create_source_groups.cmake)
+# Run version.cmake to build the version string used
+# in version.txt and productVersion.h
 include(cmake/version.cmake)
 include(cmake/version_setup.cmake)
 include(cmake/licenses.cmake)
@@ -552,9 +554,9 @@ set(CMAKE_AUTOMOC ON)
 
 # target for running versionnumber script
 # workaround for running customcommand (ninja dependency cycle)
-add_custom_target(
-	versionnumber ALL
-)
+#add_custom_target(
+#	versionnumber ALL
+#)
 
 add_library(${LIB_GUI_PROJECT_NAME} ${LIB_GUI_FILES} ${CMAKE_BINARY_DIR}/src/lib_gui/productVersion.h)
 
@@ -567,14 +569,23 @@ if (WIN32)
 endif()
 
 # command for versioning script
+#add_custom_command(
+#	TARGET versionnumber
+#	PRE_BUILD
+#	COMMAND ${CMAKE_COMMAND} -DBINARY_DIR=${CMAKE_BINARY_DIR} -P ${CMAKE_SOURCE_DIR}/cmake/version.cmake
+#	BYPRODUCTS ${CMAKE_BINARY_DIR}/src/lib_gui/productVersion.h
+##	DEPENDS ${LIB_GUI_PROJECT_NAME}
+#	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+#	COMMENT "check/update version number"
+#)
 add_custom_command(
-	TARGET versionnumber
-	PRE_BUILD
+	OUTPUT ${CMAKE_BINARY_DIR}/version.txt
 	COMMAND ${CMAKE_COMMAND} -DBINARY_DIR=${CMAKE_BINARY_DIR} -P ${CMAKE_SOURCE_DIR}/cmake/version.cmake
-	BYPRODUCTS ${CMAKE_BINARY_DIR}/src/lib_gui/productVersion.h
-#	DEPENDS ${LIB_GUI_PROJECT_NAME}
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 	COMMENT "check/update version number"
+)
+add_custom_target(
+	versionnumber ALL DEPENDS ${CMAKE_BINARY_DIR}/version.txt
 )
 add_dependencies(${LIB_GUI_PROJECT_NAME} versionnumber)
 
@@ -612,10 +623,30 @@ configure_file(
 	${CMAKE_BINARY_DIR}/version.txt
 )
 
+# Generate productVersion.h when loading/reloading the CMake project
 configure_file(
 	${CMAKE_SOURCE_DIR}/cmake/productVersion.h.in
 	${CMAKE_BINARY_DIR}/src/lib_gui/productVersion.h
 )
+
+#message(STATUS "[CMakeLists.txt] Working Directory: ${CMAKE_SOURCE_DIR}")
+# Generate productVersion.h as part of the build itself
+add_custom_command(
+	OUTPUT ${CMAKE_BINARY_DIR}/src/lib_gui/productVersion.h
+	BYPRODUCTS ${CMAKE_BINARY_DIR}/version_variables.cmake
+	COMMAND ${CMAKE_COMMAND} -DWORKING_DIRECTORY=${CMAKE_SOURCE_DIR} -DBINARY_DIR=${CMAKE_BINARY_DIR} -P ${CMAKE_SOURCE_DIR}/cmake/version.cmake
+#	COMMAND ${CMAKE_COMMAND} -E sleep 2
+	COMMAND ${CMAKE_COMMAND} -DWORKING_DIRECTORY=${CMAKE_SOURCE_DIR} -DBINARY_DIR=${CMAKE_BINARY_DIR} -P ${CMAKE_SOURCE_DIR}/cmake/generate_productversion_header.cmake
+	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+	COMMENT "generating ${CMAKE_BINARY_DIR}/src/lib_gui/productVersion.h"
+)
+add_custom_target(
+#	productversion DEPENDS ${CMAKE_BINARY_DIR}/src/lib_gui/productVersion.h
+	productversion ALL DEPENDS ${CMAKE_BINARY_DIR}/src/lib_gui/productVersion.h
+)
+add_dependencies(${LIB_GUI_PROJECT_NAME} productversion)
+#add_dependencies(${APP_PROJECT_NAME}    productversion)
+#add_dependencies(ALL productversion)
 
 set_property(SOURCE ${CMAKE_BINARY_DIR}/src/lib_gui/productVersion.h PROPERTY SKIP_AUTOMOC ON)
 
@@ -728,6 +759,9 @@ if (WIN32)
 	string(REGEX REPLACE "/" "\\\\" BACKSLASHED_CMAKE_SOURCE_DIR ${CMAKE_SOURCE_DIR})
 else ()
 	add_executable(${APP_PROJECT_NAME} ${APP_FILES})
+#	add_executable(${APP_PROJECT_NAME} ${APP_FILES} ${CMAKE_BINARY_DIR}/src/lib_gui/productVersion.h)
+	add_dependencies(${APP_PROJECT_NAME} versionnumber)
+	add_dependencies(${APP_PROJECT_NAME} productversion)
 endif ()
 
 create_source_groups(${APP_FILES})
